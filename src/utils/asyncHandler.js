@@ -1,6 +1,6 @@
 //? asyncHandler with simple promise
 const asyncHandler = (requetsHandler) => {
-  (req, res, next) => {
+  return (req, res, next) => {
     Promise.resolve(requetsHandler(req, res, next)).catch((err) => next(err));
   };
 };
