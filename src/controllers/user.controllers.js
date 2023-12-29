@@ -197,4 +197,64 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
     );
 });
 
-export { registerUser, loginUser, logoutUser, refreshAccessToken };
+const changeUserPassword = asyncHandler(async (req, res) => {
+  const { oldPassword, newPassword } = req.body;
+
+  if (!(oldPassword || newPassword)) {
+    throw new ApiError(400, "Password is required");
+  }
+
+  const user = await User.findById(req?.user?._id);
+  const passwordMatch = user.isCorrectPassword(oldPassword);
+
+  if (!passwordMatch) {
+    throw new ApiError(400, "Invalid password");
+  }
+
+  user.password = newPassword;
+  await user.save({ validateBeforeSave: false });
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, {}, "password updated successfully"));
+});
+
+const getUserDetails = asyncHandler(async (req, res) => {
+  return res.status(200).json(new ApiResponse(200, req?.user, "SUCCESS"));
+});
+
+const updateUserImage = asyncHandler(async (req, res) => {
+  const localPath = req?.file?.path;
+  if (localPath) {
+    throw new ApiError(400, "Image is required");
+  }
+
+  const uploadedImage = await uploadOnCloudinary(localPath);
+  if (!uploadedImage.url) {
+    throw new ApiError(400, "failed to upload image");
+  }
+
+  const user = await User.findByIdAndUpdate(
+    req?.user?._id,
+    {
+      $set: {
+        imgUrl: uploadedImage.url,
+      },
+    },
+    { new: true }
+  ).select("-password -refreshToken");
+
+  res
+    .status(200)
+    .json(new ApiResponse(200, user, "Image uploaded successfully"));
+});
+
+export {
+  registerUser,
+  loginUser,
+  logoutUser,
+  refreshAccessToken,
+  changeUserPassword,
+  getUserDetails,
+  updateUserImage,
+};
